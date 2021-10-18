@@ -9,7 +9,10 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-noise v0.2.2
 	github.com/libp2p/go-libp2p-quic-transport v0.11.2
+	github.com/libp2p/go-libp2p-swarm v0.5.3
 	github.com/libp2p/go-libp2p-tls v0.2.0
+	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multiaddr-dns v0.3.1
 )
 
 require (
@@ -62,7 +65,6 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.2.8 // indirect
 	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.1.3 // indirect
-	github.com/libp2p/go-libp2p-swarm v0.5.3 // indirect
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6 // indirect
 	github.com/libp2p/go-libp2p-yamux v0.5.4 // indirect
 	github.com/libp2p/go-maddr-filter v0.1.0 // indirect
@@ -94,8 +96,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.0.3 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
-	github.com/multiformats/go-multiaddr v0.4.0 // indirect
-	github.com/multiformats/go-multiaddr-dns v0.3.1 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-multicodec v0.2.0 // indirect

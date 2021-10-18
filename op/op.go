@@ -24,6 +24,11 @@ type Callback interface {
 	OnOpStop()
 }
 
+const (
+	// 连接保护标记:保持,权重100.
+	connProtectTag = "keep-conn"
+)
+
 var globalCallback Callback
 var globalName string
 var globalContext context.Context

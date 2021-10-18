@@ -24,9 +24,13 @@ func connMDNS(gc context.Context, h host.Host, addr peer.AddrInfo) {
 	e := h.Connect(ctx, addr)
 	if e != nil {
 		log.Println("MDNS节点连接失败", addr.ID.Pretty(), e)
+		// 清理网络缓存
+		clearPeerNetworkCache(h, addr.ID)
 		return
 	}
 	log.Println("MDNS节点连接成功", addr.ID.Pretty())
+	// 防止连接被清理
+	protectPeerConn(h, addr.ID)
 }
 
 func initMDNS(gc context.Context, h host.Host, stopChan chan int) {

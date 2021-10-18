@@ -6,6 +6,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	libp2p_swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"io/ioutil"
 	"log"
@@ -47,6 +48,20 @@ func getPrivateKey(privateKeyPath string) (*crypto.PrivKey, error) {
 	return &privateKey, nil
 }
 
+// 清除节点网络缓存
+// 防止拨号器使用无法连接地址快速重拨导致一直连不上.
+// https://github.com/prysmaticlabs/prysm/issues/2674#issuecomment-529229685
+func clearPeerNetworkCache(h host.Host, id peer.ID) {
+	h.Peerstore().ClearAddrs(id)
+	h.Network().(*libp2p_swarm.Swarm).Backoff().Clear(id)
+}
+
+// 保护节点连接防止被清理
+func protectPeerConn(h host.Host, id peer.ID) {
+	h.ConnManager().TagPeer(id, connProtectTag, 100)
+	h.ConnManager().Protect(id, connProtectTag)
+}
+
 // 多址字符转节点地址
 func multiaddrToAddrInfo(multiaddrText string) (*peer.AddrInfo, error) {
 	multiAddr, e := multiaddr.NewMultiaddr(multiaddrText)
@@ -83,7 +98,9 @@ func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
 	e = h.Connect(localContext, *addrInfo)
 	if e != nil {
 		log.Println("连接引导失败", multiaddrText, e)
+		clearPeerNetworkCache(h, addrInfo.ID)
 		return
 	}
 	log.Println("连接引导成功", multiaddrText)
+	protectPeerConn(h, addrInfo.ID)
 }

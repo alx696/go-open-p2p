@@ -1,7 +1,7 @@
 package dns_test
 
 import (
-	"github.com/alx696/cast-core/dns"
+	"go-open-p2p/dns"
 	"log"
 	"testing"
 )
