@@ -39,6 +39,15 @@ var globalDHT *libp2p_dht.IpfsDHT
 var mdnsStopChan = make(chan int, 1)
 var stateStopChan = make(chan int, 1)
 
+// Start 启动
+//
+// privateDirArg 私有文件夹绝对路径, 用于存放密钥等私密内容
+//
+// publicDirArg 公共文件夹绝对路径, 用于存放接收文件等公开内容
+//
+// nameArg 我的名称, 用于对方分辨自己
+//
+// callbackArg 回调, 用于传递异步状态数据
 func Start(privateDirArg string, publicDirArg string, nameArg string, callbackArg Callback) error {
 	log.Println("启动开放点对点")
 	log.Println("私有文件夹", privateDirArg)
@@ -157,6 +166,7 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	return nil
 }
 
+// Stop 停止
 func Stop() {
 	log.Println("停止开放点对点")
 
