@@ -23,15 +23,27 @@ type Callback interface {
 	OnOpStart(id string, addrArray string)
 	OnOpStop()
 	OnOpState(jt string)
-	// OnOpInfo 收到对方发来信息
-	OnOpInfo(jt string)
+	// OnOpText 收到对方发来文本
+	OnOpText(jt string)
+	// OnOpFileSendProgress 文件发送进度
+	OnOpFileSendProgress(id, filePath string, percentage float64)
+	//// OnOpFileSendDone 文件发送完毕
+	//OnOpFileSendDone(id, filePath string)
+	// OnOpFileReceiveError 文件接收错误
+	OnOpFileReceiveError(id, filePath, et string)
+	// OnOpFileReceiveProgress 文件接收进度
+	OnOpFileReceiveProgress(id, filePath string, percentage float64)
+	// OnOpFileReceiveDone 文件接收完毕
+	OnOpFileReceiveDone(id, filePath string)
 }
 
 const (
 	// 连接保护标记:保持,权重100.
 	connProtectTag = "keep-conn"
-	// 协议：信息交换
-	protocolInfo = "/lilu.red/op/1/info"
+	// 协议：文本
+	protocolText = "/lilu.red/op/1/text"
+	// 协议：文件
+	protocolFile = "/lilu.red/op/1/file"
 )
 
 var globalCallback Callback
@@ -40,6 +52,7 @@ var globalContext context.Context
 var globalContextCancel context.CancelFunc
 var globalHost host.Host
 var globalDHT *libp2p_dht.IpfsDHT
+var globalPublicDirectory string
 var mdnsStopChan = make(chan int, 1)
 var stateStopChan = make(chan int, 1)
 
@@ -57,6 +70,7 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	log.Println("私有文件夹", privateDirArg)
 	log.Println("公共文件夹", publicDirArg)
 	log.Println("我的名字", nameArg)
+	globalPublicDirectory = publicDirArg
 	globalName = nameArg
 	globalCallback = callbackArg
 
@@ -147,6 +161,9 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 			go connectBootstrap(globalContext, globalHost, v)
 		}
 	}
+
+	// 初始化交换
+	initExchange(globalHost)
 
 	// 告知节点启动
 	myAddrBytes, e := json.Marshal(globalHost.Addrs())

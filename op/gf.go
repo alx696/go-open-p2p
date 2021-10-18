@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	libp2p_swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"io/ioutil"
@@ -106,6 +108,15 @@ func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
 	}
 	log.Println("连接引导成功", multiaddrText)
 	protectPeerConn(h, addrInfo.ID)
+}
+
+// 创建节点的流
+// 注意: defer s.Close()
+func createStream(gc context.Context, h host.Host, id string, protocolID protocol.ID) (network.Stream, error) {
+	peerID, _ := peer.Decode(id)
+	lc, lcCancel := context.WithTimeout(gc, time.Second*3)
+	defer lcCancel()
+	return h.NewStream(lc, peerID, protocolID)
 }
 
 // 从读写器中获取文本
