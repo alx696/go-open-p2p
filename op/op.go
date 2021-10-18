@@ -23,11 +23,15 @@ type Callback interface {
 	OnOpStart(id string, addrArray string)
 	OnOpStop()
 	OnOpState(jt string)
+	// OnOpInfo 收到对方发来信息
+	OnOpInfo(jt string)
 }
 
 const (
 	// 连接保护标记:保持,权重100.
 	connProtectTag = "keep-conn"
+	// 协议：信息交换
+	protocolInfo = "/lilu.red/op/1/info"
 )
 
 var globalCallback Callback

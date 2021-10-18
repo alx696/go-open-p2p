@@ -1,7 +1,9 @@
 package op
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -11,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -103,4 +106,56 @@ func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
 	}
 	log.Println("连接引导成功", multiaddrText)
 	protectPeerConn(h, addrInfo.ID)
+}
+
+// 从读写器中获取文本
+func readTextFromReadWriter(rw *bufio.ReadWriter) (*[]byte, error) {
+	//读取
+	txt, e := rw.ReadString('\n')
+	if e != nil {
+		return nil, e
+	}
+	//移除delim
+	txt = strings.TrimSuffix(txt, "\n")
+
+	if txt == "" {
+		var empty []byte
+		return &empty, nil
+	}
+
+	// //读取
+	// encodeData, e := rw.ReadBytes('\n')
+	// if e != nil {
+	// 	return nil, e
+	// }
+	// //移除delim
+	// encodeData = encodeData[0 : len(encodeData)-1]
+
+	//解码
+	data, e := base64.StdEncoding.DecodeString(txt)
+	if e != nil {
+		return nil, e
+	}
+
+	return &data, nil
+}
+
+// 往读写器中写入文本
+func writeTextToReadWriter(rw *bufio.ReadWriter, data *[]byte) error {
+	//编码
+	encodeData := []byte(base64.StdEncoding.EncodeToString(*data))
+
+	//添加delim
+	encodeData = append(encodeData, '\n')
+
+	//写入
+	_, e := rw.Write(encodeData)
+	if e != nil {
+		return e
+	}
+	e = rw.Flush()
+	if e != nil {
+		return e
+	}
+	return nil
 }
