@@ -34,6 +34,7 @@ func connMDNS(gc context.Context, h host.Host, addr peer.AddrInfo) {
 }
 
 func initMDNS(gc context.Context, h host.Host, stopChan chan int) {
+	log.Println("启动MDNS")
 	dsnNotifee := &DnsNotifee{PeerChan: make(chan peer.AddrInfo)}
 	s := mdns.NewMdnsService(h, "")
 	s.RegisterNotifee(dsnNotifee)

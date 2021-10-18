@@ -61,3 +61,7 @@ func (impl CallbackImpl) OnOpStop() {
 	log.Println("回调停止")
 	stopChan <- 1
 }
+
+func (impl CallbackImpl) OnOpState(jt string) {
+	//log.Println("回调状态", jt)
+}

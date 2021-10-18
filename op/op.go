@@ -22,6 +22,7 @@ import (
 type Callback interface {
 	OnOpStart(id string, addrArray string)
 	OnOpStop()
+	OnOpState(jt string)
 }
 
 const (
@@ -36,6 +37,7 @@ var globalContextCancel context.CancelFunc
 var globalHost host.Host
 var globalDHT *libp2p_dht.IpfsDHT
 var mdnsStopChan = make(chan int, 1)
+var stateStopChan = make(chan int, 1)
 
 func Start(privateDirArg string, publicDirArg string, nameArg string, callbackArg Callback) error {
 	log.Println("启动开放点对点")
@@ -141,6 +143,9 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	globalCallback.OnOpStart(globalHost.ID().Pretty(), string(myAddrBytes))
 	log.Println("开放点对点已经启动", globalHost.ID().Pretty(), string(myAddrBytes))
 
+	// 初始化状态
+	initState(globalHost, stateStopChan, globalCallback)
+
 	// 保持运行
 	<-globalContext.Done()
 
@@ -156,6 +161,7 @@ func Stop() {
 	log.Println("停止开放点对点")
 
 	mdnsStopChan <- 1
+	stateStopChan <- 1
 
 	globalContextCancel()
 }
