@@ -29,6 +29,7 @@ var globalContext context.Context
 var globalContextCancel context.CancelFunc
 var globalHost host.Host
 var globalDHT *libp2p_dht.IpfsDHT
+var mdnsStopChan = make(chan int, 1)
 
 func Start(privateDirArg string, publicDirArg string, nameArg string, callbackArg Callback) error {
 	log.Println("启动开放点对点")
@@ -108,6 +109,9 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	}
 	defer globalHost.Close()
 
+	// 初始化MDNS
+	initMDNS(globalHost, mdnsStopChan)
+
 	// 告知节点启动
 	myAddrBytes, e := json.Marshal(globalHost.Addrs())
 	if e != nil {
@@ -129,6 +133,8 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 
 func Stop() {
 	log.Println("停止开放点对点")
+
+	mdnsStopChan <- 1
 
 	globalContextCancel()
 }
