@@ -12,6 +12,7 @@ import (
 	libp2p_noise "github.com/libp2p/go-libp2p-noise"
 	libp2p_quic "github.com/libp2p/go-libp2p-quic-transport"
 	libp2p_tls "github.com/libp2p/go-libp2p-tls"
+	"go-open-p2p/dns"
 	"log"
 	"os"
 	"path/filepath"
@@ -110,7 +111,22 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	defer globalHost.Close()
 
 	// 初始化MDNS
-	initMDNS(globalHost, mdnsStopChan)
+	initMDNS(globalContext, globalHost, mdnsStopChan)
+
+	// 连接引导
+	var dnsTxtArray []string
+	dnsTxtArray, e = dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
+	if e == nil {
+		for _, v := range dnsTxtArray {
+			go connectBootstrap(globalContext, globalHost, v)
+		}
+	}
+	dnsTxtArray, e = dns.Txt("bootstrap.ipfs.lilu.red")
+	if e == nil {
+		for _, v := range dnsTxtArray {
+			go connectBootstrap(globalContext, globalHost, v)
+		}
+	}
 
 	// 告知节点启动
 	myAddrBytes, e := json.Marshal(globalHost.Addrs())

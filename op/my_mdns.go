@@ -18,8 +18,8 @@ func (n *DnsNotifee) HandlePeerFound(pa peer.AddrInfo) {
 	n.PeerChan <- pa
 }
 
-func connMDNS(h host.Host, addr peer.AddrInfo) {
-	ctx, can := context.WithTimeout(globalContext, time.Second)
+func connMDNS(gc context.Context, h host.Host, addr peer.AddrInfo) {
+	ctx, can := context.WithTimeout(gc, time.Second)
 	defer can()
 	e := h.Connect(ctx, addr)
 	if e != nil {
@@ -29,7 +29,7 @@ func connMDNS(h host.Host, addr peer.AddrInfo) {
 	log.Println("MDNS节点连接成功", addr.ID.Pretty())
 }
 
-func initMDNS(h host.Host, stopChan chan int) {
+func initMDNS(gc context.Context, h host.Host, stopChan chan int) {
 	dsnNotifee := &DnsNotifee{PeerChan: make(chan peer.AddrInfo)}
 	s := mdns.NewMdnsService(h, "")
 	s.RegisterNotifee(dsnNotifee)
@@ -48,7 +48,7 @@ func initMDNS(h host.Host, stopChan chan int) {
 				}
 
 				log.Println("MDNS发现节点", addr.ID.Pretty())
-				go connMDNS(h, addr)
+				go connMDNS(gc, h, addr)
 			}
 		}
 	}()
