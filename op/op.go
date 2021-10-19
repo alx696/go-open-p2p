@@ -28,16 +28,24 @@ type Callback interface {
 	OnOpMDNSPeer(id string)
 	// OnOpConnState 节点连接状态变化
 	OnOpConnState(id string, isConn bool)
-	// OnOpText 收到对方发来文本
-	OnOpText(jt string)
+	// OnOpTextSendError 文本发送出错
+	OnOpTextSendError(uuid, et string)
+	// OnOpTextSendDone 文本发送完成
+	OnOpTextSendDone(uuid string)
+	// OnOpTextReceiveDone 文本接收完毕
+	OnOpTextReceiveDone(id, text string)
+	// OnOpFileSendError 文件发送出错
+	OnOpFileSendError(uuid, et string)
 	// OnOpFileSendProgress 文件发送进度
-	OnOpFileSendProgress(id, filePath string, percentage float64)
+	OnOpFileSendProgress(uuid string, percentage float64)
+	// OnOpFileSendDone 文件发送完成
+	OnOpFileSendDone(uuid, fileHash string)
 	// OnOpFileReceiveError 文件接收错误
-	OnOpFileReceiveError(id, filePath, et string)
+	OnOpFileReceiveError(id, fileHash, fileName, et string)
 	// OnOpFileReceiveProgress 文件接收进度
-	OnOpFileReceiveProgress(id, filePath string, percentage float64)
+	OnOpFileReceiveProgress(id, fileHash, fileName string, percentage float64)
 	// OnOpFileReceiveDone 文件接收完毕
-	OnOpFileReceiveDone(id, filePath string)
+	OnOpFileReceiveDone(id, fileHash, filePath string)
 }
 
 const (
