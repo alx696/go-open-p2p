@@ -38,7 +38,6 @@ func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 				}
 
 				log.Println("MDNS发现节点", addr.ID.Pretty())
-				cb.OnOpMDNSPeer(addr.ID.Pretty())
 				go func() {
 					e := connectPeer(gc, h, addr, time.Second)
 					if e != nil {
@@ -46,6 +45,8 @@ func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 						return
 					}
 					log.Println("MDNS节点连接成功", addr.ID.Pretty())
+
+					cb.OnOpMDNSPeer(addr.ID.Pretty())
 				}()
 			}
 		}

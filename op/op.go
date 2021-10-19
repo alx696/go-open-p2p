@@ -153,9 +153,6 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 	}
 	defer globalHost.Close()
 
-	// 初始化MDNS
-	mdnsInit(globalContext, globalHost, mdnsStopChan, globalCallback)
-
 	// 连接引导
 	var dnsTxtArray []string
 	dnsTxtArray, e = dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
@@ -175,12 +172,19 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 	initExchange(globalHost)
 
 	// 告知节点启动
-	myAddrBytes, e := json.Marshal(globalHost.Addrs())
+	log.Println("开放点对点已经启动", globalHost.ID().Pretty(), globalHost.Addrs())
+	var maArray []string
+	for _, ma := range globalHost.Addrs() {
+		maArray = append(maArray, ma.String())
+	}
+	maArrayBytes, e := json.Marshal(maArray)
 	if e != nil {
 		return fmt.Errorf("我的地址转换出错: %w", e)
 	}
-	log.Println("开放点对点已经启动", globalHost.ID().Pretty(), string(myAddrBytes))
-	globalCallback.OnOpStart(globalHost.ID().Pretty(), string(myAddrBytes))
+	globalCallback.OnOpStart(globalHost.ID().Pretty(), string(maArrayBytes))
+
+	// 初始化MDNS
+	mdnsInit(globalContext, globalHost, mdnsStopChan, globalCallback)
 
 	// 初始化状态
 	initState(globalHost, stateStopChan, globalCallback)
