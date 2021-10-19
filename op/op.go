@@ -76,6 +76,11 @@ var connStateStopChan = make(chan int, 1)
 // nameArg 我的名称, 用于对方分辨自己
 //
 // callbackArg 回调, 用于传递异步状态数据
+//
+// 存在问题
+//
+// 如果targetSdk设置为30以上, 部分手机会出现下面问题:
+// GoLog: 2021-10-19T12:29:24.041Z	ERROR	basichost	basic/basic_host.go:289	failed to resolve local interface addresses	{"error": "route ip+net: netlinkrib: permission denied"}
 func Start(privateDirArg string, publicDirArg string, callbackArg Callback) error {
 	log.Println("启动开放点对点")
 	log.Println("私有文件夹", privateDirArg)
