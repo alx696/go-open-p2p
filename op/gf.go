@@ -53,20 +53,6 @@ func getPrivateKey(privateKeyPath string) (*crypto.PrivKey, error) {
 	return &privateKey, nil
 }
 
-// 清除节点网络缓存
-// 防止拨号器使用无法连接地址快速重拨导致一直连不上.
-// https://github.com/prysmaticlabs/prysm/issues/2674#issuecomment-529229685
-func clearPeerNetworkCache(h host.Host, id peer.ID) {
-	h.Peerstore().ClearAddrs(id)
-	h.Network().(*libp2p_swarm.Swarm).Backoff().Clear(id)
-}
-
-// 保护节点连接防止被清理
-func protectPeerConn(h host.Host, id peer.ID) {
-	h.ConnManager().TagPeer(id, connProtectTag, 100)
-	h.ConnManager().Protect(id, connProtectTag)
-}
-
 // 多址字符转节点地址
 func multiaddrToAddrInfo(multiaddrText string) (*peer.AddrInfo, error) {
 	multiAddr, e := multiaddr.NewMultiaddr(multiaddrText)
@@ -89,28 +75,82 @@ func multiaddrToAddrInfo(multiaddrText string) (*peer.AddrInfo, error) {
 	return addrInfo, nil
 }
 
+// 清除节点网络缓存
+//
+// 防止拨号器使用无法连接地址快速重拨导致一直连不上.
+//
+// https://github.com/prysmaticlabs/prysm/issues/2674#issuecomment-529229685
+func clearPeerNetworkCache(h host.Host, id peer.ID) {
+	h.Peerstore().ClearAddrs(id)
+	h.Network().(*libp2p_swarm.Swarm).Backoff().Clear(id)
+}
+
+// 保护节点连接防止被清理
+func protectPeerConn(h host.Host, id peer.ID) {
+	h.ConnManager().TagPeer(id, connProtectTag, 100)
+	h.ConnManager().Protect(id, connProtectTag)
+}
+
+// 连接节点
+func connectPeer(gc context.Context, h host.Host, addr peer.AddrInfo, timeout time.Duration) error {
+	ctx, ctxCancel := context.WithTimeout(gc, timeout)
+	defer ctxCancel()
+	e := h.Connect(ctx, addr)
+	if e != nil {
+		//log.Println("连接失败", addr.ID.Pretty(), e)
+		clearPeerNetworkCache(h, addr.ID)
+		return e
+	}
+	//log.Println("连接成功", addr.ID.Pretty())
+	protectPeerConn(h, addr.ID)
+
+	return nil
+}
+
 // 连接引导(帮助节点之间进行发现)
 func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
-	log.Println("连接引导地址", multiaddrText)
 	addrInfo, e := multiaddrToAddrInfo(multiaddrText)
+	if e != nil {
+		log.Println("引导地址错误", multiaddrText, e)
+		return
+	}
+
+	e = connectPeer(gc, h, *addrInfo, time.Second*3)
 	if e != nil {
 		log.Println("连接引导失败", multiaddrText, e)
 		return
 	}
 
-	localContext, localContextCancel := context.WithTimeout(gc, time.Second*3)
-	defer localContextCancel()
-	e = h.Connect(localContext, *addrInfo)
-	if e != nil {
-		log.Println("连接引导失败", multiaddrText, e)
-		clearPeerNetworkCache(h, addrInfo.ID)
-		return
-	}
 	log.Println("连接引导成功", multiaddrText)
-	protectPeerConn(h, addrInfo.ID)
+}
+
+// 从DHT中查找节点地址信息
+func findAddrInfoFromDHT(gc context.Context, id peer.ID) (*peer.AddrInfo, error) {
+	localContext, localContextCancel := context.WithTimeout(gc, time.Second)
+	defer localContextCancel()
+	addrInfo, e := globalDHT.FindPeer(localContext, id)
+	if e != nil {
+		return nil, e
+	}
+
+	// 地址信息中添加中继地址, 支持没有公网IP的用户
+	//参考 https://github.com/libp2p/go-libp2p-examples/blob/master/relay/main.go
+	relayMultiAddr, e := multiaddr.NewMultiaddr(fmt.Sprint("/p2p-circuit/ipfs/", id.Pretty()))
+	if e != nil {
+		return nil, e
+	}
+	addrInfo.Addrs = append(addrInfo.Addrs, relayMultiAddr)
+
+	return &addrInfo, nil
+}
+
+// 连接数量
+func connectCount(h host.Host, id peer.ID) int {
+	return len(h.Network().ConnsToPeer(id))
 }
 
 // 创建节点的流
+//
 // 注意: defer s.Close()
 func createStream(gc context.Context, h host.Host, id string, protocolID protocol.ID) (network.Stream, error) {
 	peerID, _ := peer.Decode(id)

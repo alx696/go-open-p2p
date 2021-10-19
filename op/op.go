@@ -22,13 +22,16 @@ import (
 type Callback interface {
 	OnOpStart(id string, addrArray string)
 	OnOpStop()
+	// OnOpState 节点状态变化, my_state.MyState
 	OnOpState(jt string)
+	// OnOpMDNSPeer MDNS发现节点
+	OnOpMDNSPeer(id string)
+	// OnOpConnState 节点连接状态变化
+	OnOpConnState(id string, isConn bool)
 	// OnOpText 收到对方发来文本
 	OnOpText(jt string)
 	// OnOpFileSendProgress 文件发送进度
 	OnOpFileSendProgress(id, filePath string, percentage float64)
-	//// OnOpFileSendDone 文件发送完毕
-	//OnOpFileSendDone(id, filePath string)
 	// OnOpFileReceiveError 文件接收错误
 	OnOpFileReceiveError(id, filePath, et string)
 	// OnOpFileReceiveProgress 文件接收进度
@@ -47,7 +50,6 @@ const (
 )
 
 var globalCallback Callback
-var globalName string
 var globalContext context.Context
 var globalContextCancel context.CancelFunc
 var globalHost host.Host
@@ -55,6 +57,7 @@ var globalDHT *libp2p_dht.IpfsDHT
 var globalPublicDirectory string
 var mdnsStopChan = make(chan int, 1)
 var stateStopChan = make(chan int, 1)
+var connStateStopChan = make(chan int, 1)
 
 // Start 启动
 //
@@ -65,13 +68,11 @@ var stateStopChan = make(chan int, 1)
 // nameArg 我的名称, 用于对方分辨自己
 //
 // callbackArg 回调, 用于传递异步状态数据
-func Start(privateDirArg string, publicDirArg string, nameArg string, callbackArg Callback) error {
+func Start(privateDirArg string, publicDirArg string, callbackArg Callback) error {
 	log.Println("启动开放点对点")
 	log.Println("私有文件夹", privateDirArg)
 	log.Println("公共文件夹", publicDirArg)
-	log.Println("我的名字", nameArg)
 	globalPublicDirectory = publicDirArg
-	globalName = nameArg
 	globalCallback = callbackArg
 
 	e := os.MkdirAll(privateDirArg, os.ModePerm)
@@ -145,7 +146,7 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	defer globalHost.Close()
 
 	// 初始化MDNS
-	initMDNS(globalContext, globalHost, mdnsStopChan)
+	mdnsInit(globalContext, globalHost, mdnsStopChan, globalCallback)
 
 	// 连接引导
 	var dnsTxtArray []string
@@ -170,11 +171,14 @@ func Start(privateDirArg string, publicDirArg string, nameArg string, callbackAr
 	if e != nil {
 		return fmt.Errorf("我的地址转换出错: %w", e)
 	}
-	globalCallback.OnOpStart(globalHost.ID().Pretty(), string(myAddrBytes))
 	log.Println("开放点对点已经启动", globalHost.ID().Pretty(), string(myAddrBytes))
+	globalCallback.OnOpStart(globalHost.ID().Pretty(), string(myAddrBytes))
 
 	// 初始化状态
 	initState(globalHost, stateStopChan, globalCallback)
+
+	// 初始化连接状态
+	connStateInit(globalContext, globalHost, connStateStopChan, globalCallback)
 
 	// 保持运行
 	<-globalContext.Done()
@@ -193,6 +197,7 @@ func Stop() {
 
 	mdnsStopChan <- 1
 	stateStopChan <- 1
+	connStateStopChan <- 1
 
 	globalContextCancel()
 }

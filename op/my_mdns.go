@@ -18,22 +18,7 @@ func (n *DnsNotifee) HandlePeerFound(pa peer.AddrInfo) {
 	n.PeerChan <- pa
 }
 
-func connMDNS(gc context.Context, h host.Host, addr peer.AddrInfo) {
-	ctx, can := context.WithTimeout(gc, time.Second)
-	defer can()
-	e := h.Connect(ctx, addr)
-	if e != nil {
-		log.Println("MDNS节点连接失败", addr.ID.Pretty(), e)
-		// 清理网络缓存
-		clearPeerNetworkCache(h, addr.ID)
-		return
-	}
-	log.Println("MDNS节点连接成功", addr.ID.Pretty())
-	// 防止连接被清理
-	protectPeerConn(h, addr.ID)
-}
-
-func initMDNS(gc context.Context, h host.Host, stopChan chan int) {
+func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 	log.Println("启动MDNS")
 	dsnNotifee := &DnsNotifee{PeerChan: make(chan peer.AddrInfo)}
 	s := mdns.NewMdnsService(h, "")
@@ -53,7 +38,15 @@ func initMDNS(gc context.Context, h host.Host, stopChan chan int) {
 				}
 
 				log.Println("MDNS发现节点", addr.ID.Pretty())
-				go connMDNS(gc, h, addr)
+				cb.OnOpMDNSPeer(addr.ID.Pretty())
+				go func() {
+					e := connectPeer(gc, h, addr, time.Second)
+					if e != nil {
+						log.Println("MDNS节点连接失败", addr.ID.Pretty(), e)
+						return
+					}
+					log.Println("MDNS节点连接成功", addr.ID.Pretty())
+				}()
 			}
 		}
 	}()

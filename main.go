@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type CallbackImpl struct {
@@ -29,7 +30,7 @@ func main() {
 	}
 
 	go func() {
-		e := op.Start(*privateFlag, *publicFlag, *nameFlag, CallbackImpl{})
+		e := op.Start(*privateFlag, *publicFlag, CallbackImpl{})
 		if e != nil {
 			startErrorChan <- e
 		}
@@ -56,15 +57,25 @@ func main() {
 func (impl CallbackImpl) OnOpStart(id string, addrArray string) {
 	log.Println("回调启动", id, addrArray)
 
-	//go func() {
-	//	<- time.After(time.Second * 6)
-	//
-	//	log.Println("测试发送文本")
-	//	op.TextSend("12D3KooWMVboev1gH614CnVwoG7mpN4te4QAJuk8c6Ykn7cSLh3o", "你好")
-	//
-	//	log.Println("测试发送文件")
-	//	op.FileSend("12D3KooWMVboev1gH614CnVwoG7mpN4te4QAJuk8c6Ykn7cSLh3o", "/home/k/下载/libwebp-1.2.1-linux-x86-64.tar.gz")
-	//}()
+	go func() {
+		<-time.After(time.Second * 6)
+
+		//	log.Println("测试发送文本")
+		//	op.TextSend("12D3KooWMVboev1gH614CnVwoG7mpN4te4QAJuk8c6Ykn7cSLh3o", "你好")
+		//
+		//	log.Println("测试发送文件")
+		//	op.FileSend("12D3KooWMVboev1gH614CnVwoG7mpN4te4QAJuk8c6Ykn7cSLh3o", "/home/k/下载/libwebp-1.2.1-linux-x86-64.tar.gz")
+
+		//var connStateIdArray []string
+		//connStateIdArray = append(connStateIdArray, "12D3KooWS7mTsSGrngHP1YhNsiFZWYHRGpxgmfXoFcUnaU8KHbJt")
+		//jsonBytes, _ := json.Marshal(connStateIdArray)
+		//e := op.ConnStateCheckSet(string(jsonBytes))
+		//if e != nil {
+		//	log.Println("设置状态检查ID数组出错", e)
+		//} else {
+		//	log.Println("设置状态检查ID数组成功")
+		//}
+	}()
 }
 
 func (impl CallbackImpl) OnOpStop() {
@@ -76,16 +87,20 @@ func (impl CallbackImpl) OnOpState(jt string) {
 	//log.Println("回调状态", jt)
 }
 
+func (impl CallbackImpl) OnOpMDNSPeer(id string) {
+	log.Println("回调MDNS发现节点", id)
+}
+
+func (impl CallbackImpl) OnOpConnState(id string, isConn bool) {
+	log.Println("回调节点连接状态变化", id, isConn)
+}
+
 func (impl CallbackImpl) OnOpText(jt string) {
 	log.Println("回调收到对方发来文本", jt)
 }
 
 func (impl CallbackImpl) OnOpFileSendProgress(id, filePath string, percentage float64) {
 	log.Println("回调文件发送进度", id, filePath, percentage)
-}
-
-func (impl CallbackImpl) OnOpFileSendDone(id, filePath string) {
-	log.Println("回调文件发送完毕", id, filePath)
 }
 
 func (impl CallbackImpl) OnOpFileReceiveError(id, filePath, et string) {
