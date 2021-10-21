@@ -41,10 +41,10 @@ func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 				go func() {
 					e := connectPeer(gc, h, addr, time.Second)
 					if e != nil {
-						log.Println("MDNS节点连接失败", addr.ID.Pretty(), e)
+						//log.Println("MDNS节点连接失败", addr.ID.Pretty(), e)
 						return
 					}
-					log.Println("MDNS节点连接成功", addr.ID.Pretty())
+					//log.Println("MDNS节点连接成功", addr.ID.Pretty())
 
 					cb.OnOpMDNSPeer(addr.ID.Pretty())
 				}()

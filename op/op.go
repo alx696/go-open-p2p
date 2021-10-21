@@ -37,15 +37,17 @@ type Callback interface {
 	// OnOpFileSendError 文件发送出错
 	OnOpFileSendError(uuid, et string)
 	// OnOpFileSendProgress 文件发送进度
-	OnOpFileSendProgress(uuid string, percentage float64)
+	OnOpFileSendProgress(uuid string, fileSize, sendSize int64)
 	// OnOpFileSendDone 文件发送完成
 	OnOpFileSendDone(uuid, fileHash string)
+	// OnOpFileReceiveStart 文件接收开始
+	OnOpFileReceiveStart(id, fileHash, fileName, uuid string, fileSize int64)
 	// OnOpFileReceiveError 文件接收错误
-	OnOpFileReceiveError(id, fileHash, fileName, et string)
+	OnOpFileReceiveError(uuid, et string)
 	// OnOpFileReceiveProgress 文件接收进度
-	OnOpFileReceiveProgress(id, fileHash, fileName string, percentage float64)
+	OnOpFileReceiveProgress(uuid string, fileSize, receiveSize int64)
 	// OnOpFileReceiveDone 文件接收完毕
-	OnOpFileReceiveDone(id, fileHash, filePath string)
+	OnOpFileReceiveDone(uuid, filePath string)
 }
 
 const (

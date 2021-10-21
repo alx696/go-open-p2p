@@ -2,6 +2,8 @@ package op
 
 import "encoding/json"
 
+// TODO 发送需要支持取消
+
 // TextSend 文本发送
 //
 // uuid 唯一标识, 用于跟踪状态

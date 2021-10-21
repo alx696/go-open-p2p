@@ -110,22 +110,26 @@ func (impl CallbackImpl) OnOpFileSendError(uuid, et string) {
 	log.Println("回调文件发送出错", uuid, et)
 }
 
-func (impl CallbackImpl) OnOpFileSendProgress(uuid string, percentage float64) {
-	log.Println("回调文件发送进度", uuid, percentage)
+func (impl CallbackImpl) OnOpFileSendProgress(uuid string, fileSize, sendSize int64) {
+	log.Println("回调文件发送进度", uuid, fileSize, sendSize)
 }
 
 func (impl CallbackImpl) OnOpFileSendDone(uuid, fileHash string) {
 	log.Println("回调文件发送完成", uuid, fileHash)
 }
 
-func (impl CallbackImpl) OnOpFileReceiveError(id, fileHash, fileName, et string) {
-	log.Println("回调文件接收错误", id, fileHash, fileName, et)
+func (impl CallbackImpl) OnOpFileReceiveStart(id, fileHash, fileName, uuid string, fileSize int64) {
+	log.Println("回调文件接收开始", id, fileHash, fileName, uuid, fileSize)
 }
 
-func (impl CallbackImpl) OnOpFileReceiveProgress(id, fileHash, fileName string, percentage float64) {
-	log.Println("回调文件接收进度", id, fileHash, fileName, percentage)
+func (impl CallbackImpl) OnOpFileReceiveError(uuid, et string) {
+	log.Println("回调文件接收错误", uuid, et)
 }
 
-func (impl CallbackImpl) OnOpFileReceiveDone(id, fileHash, filePath string) {
-	log.Println("回调文件接收完毕", id, fileHash, filePath)
+func (impl CallbackImpl) OnOpFileReceiveProgress(uuid string, fileSize, receiveSize int64) {
+	log.Println("回调文件接收进度", uuid, fileSize, receiveSize)
+}
+
+func (impl CallbackImpl) OnOpFileReceiveDone(uuid string) {
+	log.Println("回调文件接收完毕", uuid)
 }

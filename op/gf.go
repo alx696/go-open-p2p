@@ -115,7 +115,7 @@ func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
 		return
 	}
 
-	e = connectPeer(gc, h, *addrInfo, time.Second*3)
+	e = connectPeer(gc, h, *addrInfo, time.Second*16)
 	if e != nil {
 		log.Println("连接引导失败", multiaddrText, e)
 		return
@@ -152,9 +152,9 @@ func connectCount(h host.Host, id peer.ID) int {
 // 创建节点的流
 //
 // 注意: defer s.Close()
-func createStream(gc context.Context, h host.Host, id string, protocolID protocol.ID) (network.Stream, error) {
+func createStream(gc context.Context, h host.Host, id string, protocolID protocol.ID, timeout time.Duration) (network.Stream, error) {
 	peerID, _ := peer.Decode(id)
-	lc, lcCancel := context.WithTimeout(gc, time.Second*3)
+	lc, lcCancel := context.WithTimeout(gc, timeout)
 	defer lcCancel()
 	return h.NewStream(lc, peerID, protocolID)
 }

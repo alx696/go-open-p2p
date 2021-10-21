@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"io"
@@ -51,7 +52,7 @@ func textStreamHandler(s network.Stream) {
 
 // 文本发送
 func textSend(uuid, id, text string) {
-	s, e := createStream(globalContext, globalHost, id, protocolText)
+	s, e := createStream(globalContext, globalHost, id, protocolText, time.Minute)
 	if e != nil {
 		globalCallback.OnOpTextSendError(uuid, e.Error())
 		return
@@ -152,6 +153,16 @@ func fileStreamHandler(s network.Stream) {
 		return
 	}
 
+	// 通知开始接收
+	myUUID := uuid.New().String()
+	globalCallback.OnOpFileReceiveStart(
+		remotePeerID.Pretty(),
+		fileHash,
+		fileName,
+		myUUID,
+		fileSize,
+	)
+
 	// 开始接收文件
 	f, _ := os.OpenFile(fileCachePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	defer f.Close()
@@ -166,7 +177,7 @@ func fileStreamHandler(s network.Stream) {
 			} else {
 				log.Println("文件处理: 读取数据出错", e)
 				// 告知接收错误
-				globalCallback.OnOpFileReceiveError(remotePeerID.Pretty(), fileHash, fileName, e.Error())
+				globalCallback.OnOpFileReceiveError(myUUID, e.Error())
 				return
 			}
 		}
@@ -177,17 +188,16 @@ func fileStreamHandler(s network.Stream) {
 			if e != nil {
 				log.Println("文件处理: 保存数据出错", e)
 				// 告知接收错误
-				globalCallback.OnOpFileReceiveError(remotePeerID.Pretty(), fileHash, fileName, e.Error())
+				globalCallback.OnOpFileReceiveError(myUUID, e.Error())
 				return
 			}
 		}
 
 		// 累加完成长度
 		doneSum += int64(wn)
-		// 计算百分比
-		percentage, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", float64(doneSum)/float64(fileSize)), 64)
+
 		// 告知接收进度
-		globalCallback.OnOpFileReceiveProgress(remotePeerID.Pretty(), fileHash, fileName, percentage)
+		globalCallback.OnOpFileReceiveProgress(myUUID, fileSize, finishSize+doneSum)
 
 		// 判断是否完成
 		if finishSize+doneSum == fileSize {
@@ -205,12 +215,12 @@ func fileStreamHandler(s network.Stream) {
 	if e != nil {
 		log.Println("文件处理, 移动缓存文件为正式文件出错:", e)
 		// 告知接收错误
-		globalCallback.OnOpFileReceiveError(remotePeerID.Pretty(), fileHash, fileName, e.Error())
+		globalCallback.OnOpFileReceiveError(myUUID, e.Error())
 		return
 	}
 
 	// 告知接收完成
-	globalCallback.OnOpFileReceiveDone(remotePeerID.Pretty(), fileHash, filePath)
+	globalCallback.OnOpFileReceiveDone(myUUID, filePath)
 
 	// 回复1
 	responseBytes := []byte("成功")
@@ -222,7 +232,7 @@ func fileStreamHandler(s network.Stream) {
 
 // 文件发送
 func fileSend(uuid, id, filePath string) {
-	s, e := createStream(globalContext, globalHost, id, protocolFile)
+	s, e := createStream(globalContext, globalHost, id, protocolFile, time.Hour*24)
 	if e != nil {
 		globalCallback.OnOpFileSendError(uuid, e.Error())
 		return
@@ -337,10 +347,9 @@ func fileSend(uuid, id, filePath string) {
 
 		// 累加完成长度
 		doneSum += int64(wn)
-		percentage, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", float64(doneSum)/float64(fileSize)), 64)
 
 		// 通知发送进度
-		globalCallback.OnOpFileSendProgress(uuid, percentage)
+		globalCallback.OnOpFileSendProgress(uuid, fileSize, sendSize+doneSum)
 
 		if sendSize+doneSum == fileSize {
 			break

@@ -53,14 +53,14 @@ func connStateCheck(gc context.Context, h host.Host, id string, cb Callback) {
 	// 尝试连接
 	addr, e := findAddrInfoFromDHT(gc, peerID)
 	if e != nil {
-		log.Println("连接状态检查时获取连接地址出错", e)
+		//log.Println("连接状态检查时获取连接地址出错", e)
 		// 通知连接断开
 		cb.OnOpConnState(id, false)
 		return
 	}
 	e = connectPeer(gc, h, *addr, time.Second)
 	if e != nil {
-		log.Println("连接状态检查时尝试进行连接失败", e)
+		//log.Println("连接状态检查时尝试进行连接失败", e)
 		// 通知连接断开
 		cb.OnOpConnState(id, false)
 		return
