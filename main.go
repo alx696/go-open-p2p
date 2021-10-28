@@ -251,6 +251,12 @@ func startHTTP(p int64) error {
 			httpHandlerRoot(ctx)
 		case "/feed":
 			httpHandlerFeed(ctx)
+		case "/send/text":
+			httpHandlerTextSend(ctx)
+		case "/send/file":
+			httpHandlerFileSend(ctx)
+		case "/conn/check":
+			httpHandlerConnStateCheckSet(ctx)
 		default:
 			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
 		}
@@ -262,6 +268,16 @@ func startHTTP(p int64) error {
 		Handler:            requestHandler,
 	}
 	return fhServer.ListenAndServe(fmt.Sprint(":", strconv.FormatInt(p, 10)))
+}
+
+// 检测节点是否已经启动
+func httpHandlerRoot(ctx *fasthttp.RequestCtx) {
+	if opID != "" {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.SetBody([]byte(opID))
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+	}
 }
 
 // 订阅
@@ -313,12 +329,35 @@ func httpHandlerFeed(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-// 检测节点是否已经启动
-func httpHandlerRoot(ctx *fasthttp.RequestCtx) {
-	if opID != "" {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-		ctx.SetBody([]byte(opID))
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+func httpHandlerTextSend(ctx *fasthttp.RequestCtx) {
+	reqUUID := string(ctx.FormValue("uuid"))
+	reqID := string(ctx.FormValue("id"))
+	reqText := string(ctx.FormValue("text"))
+
+	if reqUUID == "" || reqID == "" || reqText == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	}
+
+	op.TextSend(reqUUID, reqID, reqText)
+}
+
+func httpHandlerFileSend(ctx *fasthttp.RequestCtx) {
+	reqUUID := string(ctx.FormValue("uuid"))
+	reqID := string(ctx.FormValue("id"))
+	reqPath := string(ctx.FormValue("path"))
+
+	if reqUUID == "" || reqID == "" || reqPath == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	}
+
+	op.FileSend(reqUUID, reqID, reqPath)
+}
+
+func httpHandlerConnStateCheckSet(ctx *fasthttp.RequestCtx) {
+	reqJSON := string(ctx.FormValue("json"))
+
+	e := op.ConnStateCheckSet(reqJSON)
+	if e != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 }
