@@ -2,10 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/valyala/fasthttp"
 	"go-open-p2p/op"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
@@ -18,15 +22,26 @@ var startErrorChan = make(chan error, 1)
 // 用以等待彻底关闭
 var stopChan = make(chan int, 1)
 
+var appDir string
+
 func main() {
 	privateFlag := flag.String("private", "", "private dir")
 	publicFlag := flag.String("public", "", "public dir")
 	nameFlag := flag.String("name", "", "my name")
+	httpPortFlag := flag.Int64("http", 0, "http service port")
 	flag.Parse()
 
 	if *privateFlag == "" || *publicFlag == "" || *nameFlag == "" {
 		log.Fatalln("没有设置参数")
 	}
+
+	// 获取应用目录
+	var e error
+	appDir, e = filepath.Abs(filepath.Dir(os.Args[0]))
+	if e != nil {
+		log.Fatalln(e)
+	}
+	log.Println("应用目录:", appDir)
 
 	go func() {
 		e := op.Start(*privateFlag, *publicFlag, CallbackImpl{})
@@ -34,6 +49,17 @@ func main() {
 			startErrorChan <- e
 		}
 	}()
+
+	httpPort := *httpPortFlag
+	if httpPort != 0 {
+		go func() {
+			log.Println("开始启动HTTP服务:", httpPort)
+			e := startHTTP(httpPort)
+			if e != nil {
+				startErrorChan <- e
+			}
+		}()
+	}
 
 	// 关注系统信号
 	signalChan := make(chan os.Signal, 1)
@@ -132,4 +158,40 @@ func (impl CallbackImpl) OnOpFileReceiveProgress(uuid string, fileSize, receiveS
 
 func (impl CallbackImpl) OnOpFileReceiveDone(uuid, filePath string) {
 	log.Println("回调文件接收完毕", uuid, filePath)
+}
+
+func startHTTP(p int64) error {
+	requestHandler := func(ctx *fasthttp.RequestCtx) {
+		//CORS
+		ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+		ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT, DELETE")
+		ctx.Response.Header.Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization")
+		ctx.Response.Header.Set("Access-Control-Expose-Headers", "x-name, x-size")
+
+		//防止客户端发送OPTIONS时报错
+		if string(ctx.Method()) == "OPTIONS" {
+			return
+		}
+
+		//PATH
+		// log.Println(string(ctx.Path()), string(ctx.Method()))
+		switch string(ctx.Path()) {
+		case "/":
+			httpHandlerRoot(ctx)
+		default:
+			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
+		}
+	}
+	fhServer := &fasthttp.Server{
+		Name: "Open P2P HTTP Service",
+		// Other Server settings may be set here.
+		MaxRequestBodySize: 1024 * 1024 * 18,
+		Handler:            requestHandler,
+	}
+	return fhServer.ListenAndServe(fmt.Sprint(":", strconv.FormatInt(p, 10)))
+}
+
+func httpHandlerRoot(ctx *fasthttp.RequestCtx) {
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetBody([]byte("运行"))
 }
