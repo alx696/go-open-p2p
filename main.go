@@ -130,6 +130,6 @@ func (impl CallbackImpl) OnOpFileReceiveProgress(uuid string, fileSize, receiveS
 	log.Println("回调文件接收进度", uuid, fileSize, receiveSize)
 }
 
-func (impl CallbackImpl) OnOpFileReceiveDone(uuid string) {
-	log.Println("回调文件接收完毕", uuid)
+func (impl CallbackImpl) OnOpFileReceiveDone(uuid, filePath string) {
+	log.Println("回调文件接收完毕", uuid, filePath)
 }
