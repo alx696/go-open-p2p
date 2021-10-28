@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 )
 
@@ -22,7 +23,14 @@ var startErrorChan = make(chan error, 1)
 // 用以等待彻底关闭
 var stopChan = make(chan int, 1)
 
+// 应用目录
 var appDir string
+
+// 同步锁
+var sm sync.RWMutex
+
+// 节点ID
+var opID string
 
 func main() {
 	privateFlag := flag.String("private", "", "private dir")
@@ -81,6 +89,10 @@ func main() {
 
 func (impl CallbackImpl) OnOpStart(id string, addrArray string) {
 	log.Println("回调启动", id, addrArray)
+
+	sm.Lock()
+	opID = id
+	sm.Unlock()
 
 	//go func() {
 	//	<-time.After(time.Second * 6)
@@ -191,7 +203,12 @@ func startHTTP(p int64) error {
 	return fhServer.ListenAndServe(fmt.Sprint(":", strconv.FormatInt(p, 10)))
 }
 
+// 检测节点是否已经启动
 func httpHandlerRoot(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetBody([]byte("运行"))
+	if opID != "" {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.SetBody([]byte(opID))
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+	}
 }
