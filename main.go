@@ -36,7 +36,7 @@ var stopChan = make(chan int, 1)
 var appDir string
 
 // 同步锁
-var sm sync.RWMutex
+var sm sync.Mutex
 
 var wsUpgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  1024,
@@ -217,18 +217,18 @@ func wsPush(c, t string) {
 	wm := WsMessage{C: c, T: t}
 	jsonBytes, _ := json.Marshal(wm)
 
-	sm.RLock()
-	for id, conn := range wsConnMap {
-		log.Println("推送ws", id)
+	sm.Lock()
+	for _, conn := range wsConnMap {
+		//log.Println("推送ws", id)
 
-		e := conn.WriteMessage(websocket.TextMessage, jsonBytes)
-		if e != nil {
-			log.Println("推送ws失败", id, c, e)
-		} else {
-			log.Println("推送ws成功", id, c)
-		}
+		_ = conn.WriteMessage(websocket.TextMessage, jsonBytes)
+		//if e != nil {
+		//	log.Println("推送ws失败", id, c, e)
+		//} else {
+		//	log.Println("推送ws成功", id, c)
+		//}
 	}
-	sm.RUnlock()
+	sm.Unlock()
 }
 
 func startHTTP(p int64) error {
