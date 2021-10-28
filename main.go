@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/fasthttp/websocket"
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"go-open-p2p/op"
 	"log"
@@ -12,9 +15,15 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"time"
 )
 
 type CallbackImpl struct {
+}
+
+type WsMessage struct {
+	C string `json:"c"`
+	T string `json:"t"`
 }
 
 // 用以捕获启动错误
@@ -28,6 +37,17 @@ var appDir string
 
 // 同步锁
 var sm sync.RWMutex
+
+var wsUpgrader = websocket.FastHTTPUpgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	//跨域
+	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
+		return true
+	},
+}
+
+var wsConnMap = make(map[string]*websocket.Conn)
 
 // 节点ID
 var opID string
@@ -122,6 +142,8 @@ func (impl CallbackImpl) OnOpStop() {
 
 func (impl CallbackImpl) OnOpState(jt string) {
 	//log.Println("回调状态", jt)
+
+	wsPush("state", jt)
 }
 
 func (impl CallbackImpl) OnOpMDNSPeer(id string) {
@@ -172,6 +194,43 @@ func (impl CallbackImpl) OnOpFileReceiveDone(uuid, filePath string) {
 	log.Println("回调文件接收完毕", uuid, filePath)
 }
 
+// 更新WebSocket连接
+//
+// conn 设为nil表示删除并关闭连接
+func wsConnUpdate(id string, conn *websocket.Conn) {
+	sm.Lock()
+	oldConn, connExists := wsConnMap[id]
+	if connExists {
+		log.Println("关闭WebSocket连接", id)
+		_ = oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "服务主动关闭"))
+		_ = oldConn.Close()
+		delete(wsConnMap, id)
+	}
+	if conn != nil {
+		wsConnMap[id] = conn
+	}
+	sm.Unlock()
+}
+
+// 推送给WebSocket
+func wsPush(c, t string) {
+	wm := WsMessage{C: c, T: t}
+	jsonBytes, _ := json.Marshal(wm)
+
+	sm.RLock()
+	for id, conn := range wsConnMap {
+		log.Println("推送ws", id)
+
+		e := conn.WriteMessage(websocket.TextMessage, jsonBytes)
+		if e != nil {
+			log.Println("推送ws失败", id, c, e)
+		} else {
+			log.Println("推送ws成功", id, c)
+		}
+	}
+	sm.RUnlock()
+}
+
 func startHTTP(p int64) error {
 	requestHandler := func(ctx *fasthttp.RequestCtx) {
 		//CORS
@@ -190,6 +249,8 @@ func startHTTP(p int64) error {
 		switch string(ctx.Path()) {
 		case "/":
 			httpHandlerRoot(ctx)
+		case "/feed":
+			httpHandlerFeed(ctx)
 		default:
 			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
 		}
@@ -201,6 +262,55 @@ func startHTTP(p int64) error {
 		Handler:            requestHandler,
 	}
 	return fhServer.ListenAndServe(fmt.Sprint(":", strconv.FormatInt(p, 10)))
+}
+
+// 订阅
+func httpHandlerFeed(ctx *fasthttp.RequestCtx) {
+	e := wsUpgrader.Upgrade(ctx, func(conn *websocket.Conn) {
+		defer conn.Close()
+
+		// 读取请求
+		messageType, messageBytes, e := conn.ReadMessage()
+		if e != nil || messageType != websocket.TextMessage {
+			log.Println("订阅请求必须是文本: ", e)
+			return
+		}
+		requestText := string(messageBytes)
+		log.Println("订阅请求: ", requestText)
+		clientID := uuid.New().String()
+
+		// 保持连接, 检测连接断开
+		var closeChan = make(chan error, 1)
+		ticker := time.NewTicker(time.Second)
+		go func() {
+			for {
+				select {
+				case <-ticker.C:
+					e := conn.WriteMessage(websocket.PingMessage, nil)
+					if e != nil {
+						closeChan <- e
+						return
+					}
+					//// 发送测试
+					//e = conn.WriteMessage(websocket.TextMessage, []byte(time.Now().String()))
+					//log.Println("发送测试是否出错", e)
+				}
+			}
+		}()
+
+		// 缓存连接, 用于批量发送回调
+		wsConnUpdate(clientID, conn)
+
+		closeError := <-closeChan
+		log.Println("订阅连接断开(ping报错)", clientID, closeError)
+
+		// 移除连接
+		wsConnUpdate(clientID, nil)
+	})
+	if e != nil {
+		log.Println(e)
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+	}
 }
 
 // 检测节点是否已经启动
