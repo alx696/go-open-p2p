@@ -321,7 +321,9 @@ func httpHandlerFeed(ctx *fasthttp.RequestCtx) {
 			for {
 				select {
 				case <-ticker.C:
+					sm.Lock()
 					e := conn.WriteMessage(websocket.PingMessage, nil)
+					sm.Unlock()
 					if e != nil {
 						closeChan <- e
 						return
