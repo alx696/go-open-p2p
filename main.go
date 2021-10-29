@@ -21,11 +21,6 @@ import (
 type CallbackImpl struct {
 }
 
-type WsMessage struct {
-	C string `json:"c"`
-	T string `json:"t"`
-}
-
 // 用以捕获启动错误
 var startErrorChan = make(chan error, 1)
 
@@ -143,15 +138,25 @@ func (impl CallbackImpl) OnOpStop() {
 func (impl CallbackImpl) OnOpState(jt string) {
 	//log.Println("回调状态", jt)
 
-	wsPush("state", jt)
+	wsPush("OnOpState", jt)
 }
 
 func (impl CallbackImpl) OnOpMDNSPeer(id string) {
 	log.Println("回调MDNS发现节点", id)
+
+	wsPush("OnOpMDNSPeer", id)
 }
 
 func (impl CallbackImpl) OnOpConnState(id string, isConn bool) {
-	log.Println("回调节点连接状态变化", id, isConn)
+	//log.Println("回调节点连接状态变化", id, isConn)
+
+	m := map[string]interface{}{"id": id, "conn": isConn}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println("节点连接状态变化数据转JSON出错", e)
+	} else {
+		wsPush("OnOpConnState", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpTextSendError(uuid, et string) {
@@ -164,6 +169,14 @@ func (impl CallbackImpl) OnOpTextSendDone(uuid string) {
 
 func (impl CallbackImpl) OnOpTextReceiveDone(id, text string) {
 	log.Println("回调文本接收完毕", id, text)
+
+	m := map[string]interface{}{"id": id, "text": text}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println("文本接收完毕数据转JSON出错", e)
+	} else {
+		wsPush("OnOpTextReceiveDone", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileSendError(uuid, et string) {
@@ -214,8 +227,9 @@ func wsConnUpdate(id string, conn *websocket.Conn) {
 
 // 推送给WebSocket
 func wsPush(c, t string) {
-	wm := WsMessage{C: c, T: t}
-	jsonBytes, _ := json.Marshal(wm)
+	m := map[string]interface{}{"c": c, "t": t}
+	jsonBytes, _ := json.Marshal(m)
+	//log.Println("ws推送", string(jsonBytes))
 
 	sm.Lock()
 	for _, conn := range wsConnMap {
@@ -354,10 +368,11 @@ func httpHandlerFileSend(ctx *fasthttp.RequestCtx) {
 }
 
 func httpHandlerConnStateCheckSet(ctx *fasthttp.RequestCtx) {
-	reqJSON := string(ctx.FormValue("json"))
+	reqIdArray := string(ctx.FormValue("id_array"))
 
-	e := op.ConnStateCheckSet(reqJSON)
+	e := op.ConnStateCheckSet(reqIdArray)
 	if e != nil {
+		log.Println(e)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 }
