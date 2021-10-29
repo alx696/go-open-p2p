@@ -1,8 +1,17 @@
 package op
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/libp2p/go-libp2p-core/peer"
+)
 
 // TODO 发送需要支持取消
+
+// 检查ID是否有效
+func IdOk(id string) bool {
+	_, e := peer.Decode(id)
+	return e == nil
+}
 
 // TextSend 文本发送
 //

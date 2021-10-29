@@ -276,6 +276,8 @@ func startHTTP(p int64) error {
 			httpHandlerConnStateCheckSet(ctx)
 		case "/qrcode":
 			httpHandlerQrcode(ctx)
+		case "/check/id":
+			httpHandlerCheckId(ctx)
 		default:
 			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
 		}
@@ -389,6 +391,8 @@ func httpHandlerConnStateCheckSet(ctx *fasthttp.RequestCtx) {
 		log.Println(e)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
+
+	return
 }
 
 func httpHandlerQrcode(ctx *fasthttp.RequestCtx) {
@@ -416,4 +420,22 @@ func httpHandlerQrcode(ctx *fasthttp.RequestCtx) {
 	}
 	ctx.Response.Header.Set("Content-Disposition", fmt.Sprint("attachment;filename=", url.QueryEscape(fileName)))
 	ctx.SetBody(fileBytes)
+}
+
+func httpHandlerCheckId(ctx *fasthttp.RequestCtx) {
+	reqId := string(ctx.FormValue("id"))
+
+	if reqId == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+
+	ok := op.IdOk(reqId)
+	if ok {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	}
+
+	return
 }
