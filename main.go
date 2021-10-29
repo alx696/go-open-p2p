@@ -8,7 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"go-open-p2p/op"
+	"go-open-p2p/qc"
+	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,8 +30,8 @@ var startErrorChan = make(chan error, 1)
 // 用以等待彻底关闭
 var stopChan = make(chan int, 1)
 
-// 应用目录
-var appDir string
+// 公开目录
+var publicDir string
 
 // 同步锁
 var sm sync.Mutex
@@ -57,10 +60,10 @@ func main() {
 	if *privateFlag == "" || *publicFlag == "" || *nameFlag == "" {
 		log.Fatalln("没有设置参数")
 	}
+	publicDir = *publicFlag
 
 	// 获取应用目录
-	var e error
-	appDir, e = filepath.Abs(filepath.Dir(os.Args[0]))
+	appDir, e := filepath.Abs(filepath.Dir(os.Args[0]))
 	if e != nil {
 		log.Fatalln(e)
 	}
@@ -271,6 +274,8 @@ func startHTTP(p int64) error {
 			httpHandlerFileSend(ctx)
 		case "/conn/check":
 			httpHandlerConnStateCheckSet(ctx)
+		case "/qrcode":
+			httpHandlerQrcode(ctx)
 		default:
 			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
 		}
@@ -350,6 +355,7 @@ func httpHandlerTextSend(ctx *fasthttp.RequestCtx) {
 
 	if reqUUID == "" || reqID == "" || reqText == "" {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
 	}
 
 	op.TextSend(reqUUID, reqID, reqText)
@@ -362,6 +368,7 @@ func httpHandlerFileSend(ctx *fasthttp.RequestCtx) {
 
 	if reqUUID == "" || reqID == "" || reqPath == "" {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
 	}
 
 	op.FileSend(reqUUID, reqID, reqPath)
@@ -370,9 +377,41 @@ func httpHandlerFileSend(ctx *fasthttp.RequestCtx) {
 func httpHandlerConnStateCheckSet(ctx *fasthttp.RequestCtx) {
 	reqIdArray := string(ctx.FormValue("id_array"))
 
+	if reqIdArray == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+
 	e := op.ConnStateCheckSet(reqIdArray)
 	if e != nil {
 		log.Println(e)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
+}
+
+func httpHandlerQrcode(ctx *fasthttp.RequestCtx) {
+	reqText := string(ctx.FormValue("text"))
+
+	if reqText == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+
+	fileName := "qrcode-my.jpg"
+	imgPath := filepath.Join(publicDir, fileName)
+	e := qc.Encode(imgPath, reqText, 256, 256)
+	if e != nil {
+		log.Println(e)
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+
+	fileBytes, e := ioutil.ReadFile(imgPath)
+	if e != nil {
+		log.Println("读取文件错误:", e)
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+	ctx.Response.Header.Set("Content-Disposition", fmt.Sprint("attachment;filename=", url.QueryEscape(fileName)))
+	ctx.SetBody(fileBytes)
 }
