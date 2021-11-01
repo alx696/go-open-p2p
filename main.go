@@ -205,14 +205,48 @@ func (impl CallbackImpl) OnOpTextReceiveDone(id, text string) {
 
 func (impl CallbackImpl) OnOpFileSendError(uuid, et string) {
 	log.Println("回调文件发送出错", uuid, et)
+
+	m := map[string]interface{}{
+		"uuid": uuid,
+		"et":   et,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileSendError", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileSendProgress(uuid string, fileSize, sendSize int64) {
 	log.Println("回调文件发送进度", uuid, fileSize, sendSize)
+
+	m := map[string]interface{}{
+		"uuid":     uuid,
+		"fileSize": fileSize,
+		"sendSize": sendSize,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileSendProgress", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileSendDone(uuid, fileHash string) {
 	log.Println("回调文件发送完成", uuid, fileHash)
+
+	m := map[string]interface{}{
+		"uuid":     uuid,
+		"fileHash": fileHash,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileSendDone", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileReceiveStart(id, fileHash, fileName, uuid string, fileSize int64) {
