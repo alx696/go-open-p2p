@@ -164,10 +164,31 @@ func (impl CallbackImpl) OnOpConnState(id string, isConn bool) {
 
 func (impl CallbackImpl) OnOpTextSendError(uuid, et string) {
 	log.Println("回调文本发送出错", uuid, et)
+
+	m := map[string]interface{}{
+		"uuid": uuid,
+		"et":   et,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpTextSendError", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpTextSendDone(uuid string) {
 	log.Println("回调文本发送完成本", uuid)
+
+	m := map[string]interface{}{
+		"uuid": uuid,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpTextSendDone", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpTextReceiveDone(id, text string) {
@@ -196,18 +217,66 @@ func (impl CallbackImpl) OnOpFileSendDone(uuid, fileHash string) {
 
 func (impl CallbackImpl) OnOpFileReceiveStart(id, fileHash, fileName, uuid string, fileSize int64) {
 	log.Println("回调文件接收开始", id, fileHash, fileName, uuid, fileSize)
+
+	m := map[string]interface{}{
+		"id":       id,
+		"fileHash": fileHash,
+		"fileName": fileName,
+		"uuid":     uuid,
+		"fileSize": fileSize,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileReceiveStart", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileReceiveError(uuid, et string) {
 	log.Println("回调文件接收错误", uuid, et)
+
+	m := map[string]interface{}{
+		"uuid": uuid,
+		"et":   et,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileReceiveError", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileReceiveProgress(uuid string, fileSize, receiveSize int64) {
 	log.Println("回调文件接收进度", uuid, fileSize, receiveSize)
+
+	m := map[string]interface{}{
+		"uuid":        uuid,
+		"fileSize":    fileSize,
+		"receiveSize": receiveSize,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileReceiveProgress", string(jsonBytes))
+	}
 }
 
 func (impl CallbackImpl) OnOpFileReceiveDone(uuid, filePath string) {
 	log.Println("回调文件接收完毕", uuid, filePath)
+
+	m := map[string]interface{}{
+		"uuid":     uuid,
+		"filePath": filePath,
+	}
+	jsonBytes, e := json.Marshal(m)
+	if e != nil {
+		log.Println(e)
+	} else {
+		wsPush("OnOpFileReceiveDone", string(jsonBytes))
+	}
 }
 
 // 更新WebSocket连接
