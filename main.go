@@ -50,6 +50,9 @@ var wsConnMap = make(map[string]*websocket.Conn)
 // 节点ID
 var opID string
 
+// 移动端应该设置具有权限的私有和公共文件夹路径
+//
+// 桌面端应该设置http服务端口
 func main() {
 	privateFlag := flag.String("private", "", "private dir")
 	publicFlag := flag.String("public", "", "public dir")
@@ -57,16 +60,18 @@ func main() {
 	flag.Parse()
 
 	if *privateFlag == "" || *publicFlag == "" {
-		log.Fatalln("没有设置参数")
+		log.Fatalln("没有设置文件夹")
+	}
+
+	e := os.MkdirAll(*privateFlag, os.ModePerm)
+	if e != nil {
+		log.Fatalln("创建私有文件夹出错", e)
 	}
 	publicDir = *publicFlag
-
-	// 获取应用目录
-	appDir, e := filepath.Abs(filepath.Dir(os.Args[0]))
+	e = os.MkdirAll(publicDir, os.ModePerm)
 	if e != nil {
-		log.Fatalln(e)
+		log.Fatalln("创建公共文件夹出错", e)
 	}
-	log.Println("应用目录:", appDir)
 
 	go func() {
 		e := op.Start(*privateFlag, *publicFlag, CallbackImpl{})
