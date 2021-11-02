@@ -167,7 +167,7 @@ func fileStreamHandler(s network.Stream) {
 	f, _ := os.OpenFile(fileCachePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	defer f.Close()
 	var doneSum int64 //完成长度
-	buf := make([]byte, 1048576)
+	buf := make([]byte, 10485760)
 	for {
 		var rn int
 		rn, e = rw.Read(buf)
@@ -323,7 +323,7 @@ func fileSend(uuid, id, filePath string) {
 	}
 
 	var doneSum int64 //完成长度
-	buf := make([]byte, 1048576)
+	buf := make([]byte, 10485760)
 	for {
 		rn, e := f2.Read(buf)
 		if e != nil {
