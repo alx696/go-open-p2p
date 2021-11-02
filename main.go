@@ -53,11 +53,10 @@ var opID string
 func main() {
 	privateFlag := flag.String("private", "", "private dir")
 	publicFlag := flag.String("public", "", "public dir")
-	nameFlag := flag.String("name", "", "my name")
 	httpPortFlag := flag.Int64("http", 0, "http service port")
 	flag.Parse()
 
-	if *privateFlag == "" || *publicFlag == "" || *nameFlag == "" {
+	if *privateFlag == "" || *publicFlag == "" {
 		log.Fatalln("没有设置参数")
 	}
 	publicDir = *publicFlag
