@@ -162,6 +162,7 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 
 	// 连接引导
 	var dnsTxtArray []string
+	// 注意: gomobile不支持dnsaddr!
 	dnsTxtArray, e = dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
 	if e == nil {
 		for _, v := range dnsTxtArray {
@@ -169,6 +170,8 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 		}
 	}
 	dnsTxtArray, e = dns.Txt("bootstrap.ipfs.lilu.red")
+	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.69.143/tcp/4001/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN")
+	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.83.83/tcp/4001/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb")
 	if e == nil {
 		for _, v := range dnsTxtArray {
 			go connectBootstrap(globalContext, globalHost, v)
