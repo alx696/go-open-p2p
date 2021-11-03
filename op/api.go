@@ -13,6 +13,21 @@ func IdOk(id string) bool {
 	return e == nil
 }
 
+// 设置引导
+func BootstrapSet(arrayText string) error {
+	var array []string
+	e := json.Unmarshal([]byte(arrayText), &array)
+	if e != nil {
+		return e
+	}
+
+	for _, v := range array {
+		go connectBootstrap(globalContext, globalHost, v)
+	}
+
+	return nil
+}
+
 // TextSend 文本发送
 //
 // uuid 唯一标识, 用于跟踪状态
@@ -50,9 +65,9 @@ func FileSend(uuid, id, filePath string) {
 // 通常应该将所有联系人的标识都设置进来
 //
 // 连接状态通过 Callback.OnOpConnState 获取
-func ConnStateCheckSet(idArrayText string) error {
+func ConnStateCheckSet(arrayText string) error {
 	var array []string
-	e := json.Unmarshal([]byte(idArrayText), &array)
+	e := json.Unmarshal([]byte(arrayText), &array)
 	if e != nil {
 		return e
 	}

@@ -373,6 +373,8 @@ func startHTTP(p int64) error {
 		switch string(ctx.Path()) {
 		case "/":
 			httpHandlerRoot(ctx)
+		case "/bootstrap":
+			httpHandlerBootstrapSet(ctx)
 		case "/feed":
 			httpHandlerFeed(ctx)
 		case "/send/text":
@@ -406,6 +408,23 @@ func httpHandlerRoot(ctx *fasthttp.RequestCtx) {
 	} else {
 		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
 	}
+}
+
+func httpHandlerBootstrapSet(ctx *fasthttp.RequestCtx) {
+	reqArray := string(ctx.FormValue("array"))
+
+	if reqArray == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+
+	e := op.BootstrapSet(reqArray)
+	if e != nil {
+		log.Println(e)
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	}
+
+	return
 }
 
 // 订阅
