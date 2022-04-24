@@ -25,7 +25,9 @@ func initExchange(h host.Host) {
 func textStreamHandler(s network.Stream) {
 	remotePeerID := s.Conn().RemotePeer()
 	log.Println("文本处理, 对方ID:", remotePeerID)
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	// 创建读写器
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -42,7 +44,7 @@ func textStreamHandler(s network.Stream) {
 	// 通知收到
 	globalCallback.OnOpTextReceiveDone(remotePeerID.Pretty(), requestText)
 
-	// 回复1
+	// 回复
 	responseBytes := []byte("成功")
 	e = writeTextToReadWriter(rw, &responseBytes)
 	if e != nil {
@@ -57,7 +59,9 @@ func textSend(uuid, id, text string) {
 		globalCallback.OnOpTextSendError(uuid, e.Error())
 		return
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	// 创建读写器
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -92,7 +96,9 @@ func textSend(uuid, id, text string) {
 func fileStreamHandler(s network.Stream) {
 	remotePeerID := s.Conn().RemotePeer()
 	log.Println("文件处理, 对方ID:", remotePeerID)
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	// 创建读写器
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -165,7 +171,9 @@ func fileStreamHandler(s network.Stream) {
 
 	// 开始接收文件
 	f, _ := os.OpenFile(fileCachePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	var doneSum int64 //完成长度
 	buf := make([]byte, 1048576)
 	for {
@@ -211,12 +219,28 @@ func fileStreamHandler(s network.Stream) {
 	if e == nil {
 		filePath = filepath.Join(globalPublicDirectory, fmt.Sprintf("[%d]%s", time.Now().Nanosecond(), fileName))
 	}
-	e = os.Rename(fileCachePath, filePath)
-	if e != nil {
-		log.Println("文件处理, 移动缓存文件为正式文件出错:", e)
-		// 告知接收错误
-		globalCallback.OnOpFileReceiveError(myUUID, e.Error())
-		return
+	// 某些Windows中最后移动时可能存在多个进程争用文件问题, 多试几次来解决
+	tryMoveCount := 0
+	for tryMoveCount < 3 {
+		e = os.Rename(fileCachePath, filePath)
+
+		if e != nil {
+			// 1秒后重试
+			if tryMoveCount < 3 {
+				tryMoveCount++
+				time.Sleep(time.Second)
+				continue
+			}
+
+			// 返回错误
+			log.Println("文件处理, 移动缓存文件为正式文件出错:", e)
+			// 告知接收错误
+			globalCallback.OnOpFileReceiveError(myUUID, e.Error())
+			return
+		}
+
+		// 移动成功跳出循环
+		break
 	}
 
 	// 告知接收完成
@@ -237,7 +261,9 @@ func fileSend(uuid, id, filePath string) {
 		globalCallback.OnOpFileSendError(uuid, e.Error())
 		return
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	// 创建读写器
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -313,7 +339,9 @@ func fileSend(uuid, id, filePath string) {
 		globalCallback.OnOpFileSendError(uuid, e.Error())
 		return
 	}
-	defer f2.Close()
+	defer func() {
+		_ = f2.Close()
+	}()
 
 	// 移动到续传位置
 	_, e = f2.Seek(sendSize, 0)
