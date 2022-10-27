@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 func initExchange(h host.Host) {

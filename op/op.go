@@ -4,19 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/libp2p/go-libp2p"
-	libp2p_conn "github.com/libp2p/go-libp2p-connmgr"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/routing"
-	libp2p_dht "github.com/libp2p/go-libp2p-kad-dht"
-	libp2p_noise "github.com/libp2p/go-libp2p-noise"
-	libp2p_quic "github.com/libp2p/go-libp2p-quic-transport"
-	libp2p_tls "github.com/libp2p/go-libp2p-tls"
 	"go-open-p2p/dns"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/libp2p/go-libp2p"
+	libp2p_dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/routing"
+	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	libp2p_tls "github.com/libp2p/go-libp2p/p2p/security/tls"
 )
 
 type Callback interface {
@@ -108,10 +108,19 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 	// 创建全局上下文
 	globalContext, globalContextCancel = context.WithCancel(context.Background())
 
+	// 连接管理器
+	connmgr, e := connmgr.NewConnManager(
+		100, // Lowwater
+		200, // HighWater,
+		connmgr.WithGracePeriod(time.Minute),
+	)
+	if e != nil {
+		return fmt.Errorf("创建连接管理器失败: %s", e)
+	}
+
 	// 创建主机
 	port := 0
 	globalHost, e = libp2p.New(
-		globalContext,
 		// Use the keypair we generated
 		libp2p.Identity(*myKey),
 		// Multiple listen addresses
@@ -123,18 +132,12 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 		// support TLS connections
 		libp2p.Security(libp2p_tls.ID, libp2p_tls.New),
 		// support noise connections
-		libp2p.Security(libp2p_noise.ID, libp2p_noise.New),
+		libp2p.Security(noise.ID, noise.New),
 		// support any other default transports (TCP)
 		libp2p.DefaultTransports,
-		// support QUIC - experimental
-		libp2p.Transport(libp2p_quic.NewTransport),
 		// Let's prevent our peer from having too many
 		// connections by attaching a connection manager.
-		libp2p.ConnectionManager(libp2p_conn.NewConnManager(
-			100,         // Lowwater
-			200,         // HighWater,
-			time.Minute, // GracePeriod
-		)),
+		libp2p.ConnectionManager(connmgr),
 		// Attempt to open ports using uPNP for NATed hosts.
 		libp2p.NATPortMap(),
 		// Let this host use the DHT to find other hosts

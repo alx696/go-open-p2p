@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/fasthttp/websocket"
-	"github.com/google/uuid"
-	"github.com/valyala/fasthttp"
 	"go-open-p2p/op"
 	"go-open-p2p/qc"
 	"io/ioutil"
@@ -19,6 +16,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/fasthttp/websocket"
+	"github.com/google/uuid"
+	"github.com/valyala/fasthttp"
 )
 
 type CallbackImpl struct {

@@ -2,9 +2,10 @@ package op
 
 import (
 	"encoding/json"
-	"github.com/libp2p/go-libp2p-core/host"
 	"log"
 	"time"
+
+	"github.com/libp2p/go-libp2p/core/host"
 )
 
 // 我的状态

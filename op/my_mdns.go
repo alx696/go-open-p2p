@@ -1,28 +1,33 @@
+// 参考 https://github.com/libp2p/go-libp2p/blob/master/examples/chat-with-mdns/mdns.go
 package op
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"log"
 	"time"
+
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
-type DnsNotifee struct {
+type discoveryNotifee struct {
 	PeerChan chan peer.AddrInfo
 }
 
-// 实现mdns.Notifee
-func (n *DnsNotifee) HandlePeerFound(pa peer.AddrInfo) {
-	n.PeerChan <- pa
+// interface to be called when new  peer is found
+func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	n.PeerChan <- pi
 }
 
 func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 	log.Println("启动MDNS")
-	dsnNotifee := &DnsNotifee{PeerChan: make(chan peer.AddrInfo)}
-	s := mdns.NewMdnsService(h, "")
-	s.RegisterNotifee(dsnNotifee)
+	n := &discoveryNotifee{PeerChan: make(chan peer.AddrInfo)}
+	s := mdns.NewMdnsService(h, "lilu-open-p2p", n)
+	e := s.Start()
+	if e != nil {
+		log.Panicln(e)
+	}
 
 	go func() {
 		for {
@@ -31,7 +36,7 @@ func mdnsInit(gc context.Context, h host.Host, stopChan chan int, cb Callback) {
 				log.Println("停止MDNS")
 				_ = s.Close()
 				return
-			case addr := <-dsnNotifee.PeerChan:
+			case addr := <-n.PeerChan:
 				// 忽略自己
 				if addr.ID.Pretty() == h.ID().Pretty() {
 					break

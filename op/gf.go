@@ -5,18 +5,18 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	libp2p_swarm "github.com/libp2p/go-libp2p-swarm"
-	"github.com/multiformats/go-multiaddr"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // 获取密钥(没有时生成, 存在时加载)
@@ -36,12 +36,12 @@ func getPrivateKey(privateKeyPath string) (*crypto.PrivKey, error) {
 		if e != nil {
 			return nil, e
 		}
-		e = ioutil.WriteFile(privateKeyPath, privateKeyBytes, os.ModePerm)
+		e = os.WriteFile(privateKeyPath, privateKeyBytes, os.ModePerm)
 		if e != nil {
 			return nil, e
 		}
 	} else {
-		privateKeyBytes, e = ioutil.ReadFile(privateKeyPath)
+		privateKeyBytes, e = os.ReadFile(privateKeyPath)
 		if e != nil {
 			return nil, e
 		}
@@ -82,7 +82,7 @@ func multiaddrToAddrInfo(multiaddrText string) (*peer.AddrInfo, error) {
 // https://github.com/prysmaticlabs/prysm/issues/2674#issuecomment-529229685
 func clearPeerNetworkCache(h host.Host, id peer.ID) {
 	h.Peerstore().ClearAddrs(id)
-	h.Network().(*libp2p_swarm.Swarm).Backoff().Clear(id)
+	h.Network().(*swarm.Swarm).Backoff().Clear(id)
 }
 
 // 保护节点连接防止被清理

@@ -2,11 +2,12 @@ package op
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var connStateMutex sync.RWMutex
