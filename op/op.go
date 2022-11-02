@@ -165,20 +165,25 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 
 	// 连接引导
 	var dnsTxtArray []string
-	// 注意: gomobile不支持dnsaddr!
-	dnsTxtArray, e = dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
-	if e == nil {
-		for _, v := range dnsTxtArray {
-			go connectBootstrap(globalContext, globalHost, v)
-		}
-	}
-	dnsTxtArray, e = dns.Txt("bootstrap.ipfs.lilu.red")
 	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.69.143/tcp/4001/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN")
 	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.83.83/tcp/4001/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb")
+	// 注意: gomobile不支持dnsaddr!
+	maDnsAddrArray, e := dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
 	if e == nil {
-		for _, v := range dnsTxtArray {
-			go connectBootstrap(globalContext, globalHost, v)
-		}
+		log.Println("通过dnsaddr得到引导地址", maDnsAddrArray)
+		dnsTxtArray = append(dnsTxtArray, maDnsAddrArray...)
+	} else {
+		log.Println("通过dnsaddr查询引导地址失败:", e.Error())
+	}
+	liluAddrArray, e := dns.Txt("bootstrap.libp2p.lilu.red")
+	if e == nil {
+		log.Println("通过lilu.red得到引导地址", liluAddrArray)
+		dnsTxtArray = append(dnsTxtArray, liluAddrArray...)
+	} else {
+		log.Println("通过lilu.red查询引导地址失败:", e.Error())
+	}
+	for _, v := range dnsTxtArray {
+		go connectBootstrap(globalContext, globalHost, v)
 	}
 
 	// 初始化交换
