@@ -15,6 +15,12 @@
 --name=名字
 ```
 
+## 构建
+
+```
+sh build.sh
+```
+
 # 桌面端
 
 通过HTTP代理访问API, 通过WebSocket获取回调.
