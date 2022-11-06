@@ -147,11 +147,15 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 			return globalDHT, e
 		}),
 
-		// Can not enable: panic: runtime error: invalid memory address or nil pointer dereference
+		// 开启后会报错 https://github.com/libp2p/go-libp2p/issues/1852
 		// // Let this host use relays and advertise itself on relays if
 		// // it finds it is behind NAT. Use libp2p.Relay(options...) to
 		// // enable active relays and more.
 		// libp2p.EnableAutoRelay(),
+
+		// libp2p.EnableHolePunching(),
+
+		// libp2p.EnableRelayService(),
 
 		// If you want to help other peers to figure out if they are behind
 		// NATs, you can launch the server-side of AutoNAT too (AutoRelay
@@ -168,17 +172,14 @@ func Start(privateDirArg string, publicDirArg string, callbackArg Callback) erro
 
 	// 连接引导
 	var dnsTxtArray []string
-	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.69.143/tcp/4001/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN")
-	dnsTxtArray = append(dnsTxtArray, "/ip4/147.75.83.83/tcp/4001/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb")
-	// 注意: gomobile不支持dnsaddr!
-	maDnsAddrArray, e := dns.MaDNS("/dnsaddr/bootstrap.libp2p.io")
+	maDnsAddrArray, e := dns.MaDNS("/dnsaddr/bootstrap.libp2p.io") // 注意: gomobile不支持dnsaddr!
 	if e == nil {
 		log.Println("通过dnsaddr得到引导地址", maDnsAddrArray)
 		dnsTxtArray = append(dnsTxtArray, maDnsAddrArray...)
 	} else {
 		log.Println("通过dnsaddr查询引导地址失败:", e.Error())
 	}
-	liluAddrArray, e := dns.Txt("bootstrap.libp2p.lilu.red")
+	liluAddrArray, e := dns.Txt("bootstrap.libp2p.lilu.red") // 附加引导
 	if e == nil {
 		log.Println("通过lilu.red得到引导地址", liluAddrArray)
 		dnsTxtArray = append(dnsTxtArray, liluAddrArray...)

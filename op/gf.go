@@ -66,7 +66,7 @@ func multiaddrToAddrInfo(multiaddrText string) (*peer.AddrInfo, error) {
 	}
 
 	// 在节点地址中添加中继多址
-	relayMultiAddr, e := multiaddr.NewMultiaddr(fmt.Sprint("/p2p-circuit/ipfs/", addrInfo.ID.Pretty()))
+	relayMultiAddr, e := multiaddr.NewMultiaddr(fmt.Sprint("/p2p-circuit/p2p/", addrInfo.ID.Pretty()))
 	if e != nil {
 		return nil, fmt.Errorf("创建中继多址出错: %w", e)
 	}
@@ -115,7 +115,7 @@ func connectBootstrap(gc context.Context, h host.Host, multiaddrText string) {
 		return
 	}
 
-	e = connectPeer(gc, h, *addrInfo, time.Second*16)
+	e = connectPeer(gc, h, *addrInfo, time.Minute)
 	if e != nil {
 		log.Println("连接引导失败", multiaddrText, e)
 		return

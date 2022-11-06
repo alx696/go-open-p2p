@@ -64,7 +64,7 @@ func Txt(domian string) ([]string, error) {
 	if e != nil {
 		return nil, e
 	}
-	//log.Println("返回内容", string(bodyBytes))
+	// log.Println("返回内容", string(bodyBytes))
 
 	var dnsResponse Response
 	e = json.Unmarshal(bodyBytes, &dnsResponse)
@@ -73,14 +73,8 @@ func Txt(domian string) ([]string, error) {
 	}
 
 	var result []string
-	ac := len(dnsResponse.Answer)
-	for i, answer := range dnsResponse.Answer {
-		//log.Println("返回回答", answer.Data)
-
-		// 忽略最后一条说明信息
-		if i+1 == ac {
-			continue
-		}
+	for _, answer := range dnsResponse.Answer {
+		// log.Println("返回回答", answer.Data)
 
 		// 去除双引号
 		txt := answer.Data[1 : len(answer.Data)-1]

@@ -55,8 +55,8 @@ var opID string
 //
 // 桌面端应该设置http服务端口
 func main() {
-	privateFlag := flag.String("private", "", "private dir")
-	publicFlag := flag.String("public", "", "public dir")
+	privateFlag := flag.String("private", "/home/m/lilu-ne/private", "private dir")
+	publicFlag := flag.String("public", "/home/m/lilu-ne/public", "public dir")
 	httpPortFlag := flag.Int64("http", 0, "http service port")
 	flag.Parse()
 
@@ -94,7 +94,7 @@ func main() {
 
 	// 关注系统信号
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// 等待
 	select {
